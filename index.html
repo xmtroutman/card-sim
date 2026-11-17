@@ -1,1 +1,547 @@
+Click the Copy icon in the top-right corner of the box below to copy the entire code in one click, then paste it straight into your index.html file on GitHub:
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Card Probability & Deck Simulator</title>
+  <script src="https://jsdelivr.net"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #181c26;
+      --border: #2a3040;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --gold: #fbbf24;
+      --danger: #f87171;
+      --success: #4ade80;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 960px; margin: 0 auto; }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 1.6rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+    .stats-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .pill { background: var(--panel); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+    .pill.gold { color: var(--gold); border-color: rgba(251, 191, 36, 0.4); }
+    button { background: var(--accent); color: #090d16; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+    button:hover { opacity: 0.9; }
+    button.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+    button.danger { background: rgba(248, 113, 113, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab { background: var(--panel); color: var(--muted); border: 1px solid var(--border); }
+    .tab.active { background: var(--accent); color: #090d16; border-color: var(--accent); }
+    .section { display: none; }
+    .section.active { display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+    .card-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+    .rarity-Common { border-color: #64748b; }
+    .rarity-Uncommon { border-color: #22c55e; }
+    .rarity-Rare { border-color: #3b82f6; }
+    .rarity-Epic { border-color: #a855f7; }
+    .rarity-Legendary { border-color: #f59e0b; }
+    .rarity-Mythic { border-color: #ec4899; box-shadow: 0 0 12px rgba(236, 72, 153, 0.25); }
+    .rarity-Exotic { border-color: #14b8a6; box-shadow: 0 0 12px rgba(20, 184, 166, 0.25); }
+    .rarity-1of1 { border-color: #facc15; box-shadow: 0 0 16px rgba(250, 204, 21, 0.4); }
+    .badge { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; color: var(--muted); }
+    .room-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+    .chat-box { height: 160px; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.85rem; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    th { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 28px; max-width: 380px; width: 100%; text-align: center; }
+    .notice { font-size: 0.8rem; color: var(--muted); margin-top: 24px; border-top: 1px solid var(--border); padding-top: 12px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>Hitman's Hand Packs</h1>
+      <div class="subtitle">A little luck, a lot of style. Open packs, collect card backs, and play live with friends.</div>
+    </div>
+    <div class="stats-bar">
+      <span class="pill gold" id="chipsDisplay">1,000 CHIPS</span>
+      <span class="pill" id="rankDisplay">Rank: 1,000 RP (Season <span id="seasonLabel"></span>)</span>
+      <button class="secondary" onclick="claimDaily()">Claim daily +1,000</button>
+    </div>
+  </header>
+
+  <div class="stats-bar" style="margin-bottom: 16px;">
+    <span class="pill">Cards owned: <strong id="statOwned">0</strong></span>
+    <span class="pill">Packs opened: <strong id="statPacks">0</strong></span>
+    <span class="pill">Unique cards: <strong id="statUnique">0</strong></span>
+    <span class="pill">Top pull: <strong id="statTop">None yet</strong></span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('play', this)">Multiplayer Table</button>
+    <button class="tab" onclick="switchTab('packs', this)">Open Packs</button>
+    <button class="tab" onclick="switchTab('shop', this)">Daily Shop</button>
+    <button class="tab" onclick="switchTab('collection', this)">Collection & 1 of 1s</button>
+    <button class="tab" onclick="switchTab('ranks', this); loadLeaderboard();">Season Leaderboard</button>
+  </div>
+
+  <div id="tab-play" class="section active">
+    <div class="room-panel" id="lobbyControls">
+      <h3>Live 4-Letter Room</h3>
+      <p class="subtitle">Create a room as the dealer or enter a friend's 4-letter code.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+        <input id="playerNameInput" placeholder="Your nickname" maxlength="16" />
+        <button onclick="createRoom()">Create 4-Letter Room</button>
+        <input id="roomCodeInput" placeholder="ABCD" maxlength="4" style="width:90px; text-transform:uppercase;" />
+        <button class="secondary" onclick="joinRoom()">Join Room</button>
+      </div>
+      <div id="connectionStatus" class="subtitle" style="margin-top:10px; color: var(--success);">● Connected to online servers</div>
+    </div>
+
+    <div class="room-panel" id="activeRoomPanel" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <span class="badge">ROOM CODE</span>
+          <h2 style="margin:2px 0; letter-spacing:0.15em;" id="displayRoomCode">----</h2>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="dealBtn" onclick="dealerStartRound()" style="display:none;">Deal Hand (Host)</button>
+          <button id="stopHandBtn" class="danger" onclick="triggerStopHand()">STOP HAND!</button>
+          <button class="secondary" onclick="leaveRoom()">Leave</button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <strong>Players at Table:</strong>
+        <div id="playerList" class="stats-bar" style="margin-top:8px;"></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <strong>Your Hand (Click a card to play):</strong>
+        <div id="handArea" class="grid" style="margin-top:8px;"></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <strong>Table Feed & Live Chat:</strong>
+        <div id="chatBox" class="chat-box"></div>
+        <div style="display:flex; gap:8px;">
+          <input id="chatInput" placeholder="Send a message to the table..." style="flex:1;" onkeydown="if(event.key==='Enter') sendChat()" />
+          <button onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-packs" class="section">
+    <h2>Choose your pack</h2>
+    <p class="subtitle">Duplicates convert into chips automatically. Mythic is 1 in 137,000 in the Halo pack.</p>
+    <div class="grid" id="packGrid"></div>
+  </div>
+
+  <div id="tab-shop" class="section">
+    <h2>Daily Shop (Resets Midnight Eastern)</h2>
+    <p class="subtitle">Deterministic rotation synced to Eastern Time so everyone sees the same cards.</p>
+    <div class="grid" id="shopGrid"></div>
+  </div>
+
+  <div id="tab-collection" class="section">
+    <h2>Your Collection & Global 1 of 1 Claims</h2>
+    <div id="globalClaimsBanner" class="room-panel" style="margin-bottom:14px;"></div>
+    <div class="tabs" id="filterBar"></div>
+    <div class="grid" id="collectionGrid"></div>
+  </div>
+
+  <div id="tab-ranks" class="section">
+    <div class="room-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="margin:0;">Season <span id="lbSeasonLabel"></span> Leaderboard</h2>
+          <p class="subtitle">Resets monthly. Last place loses 3, 10, or 15 RP based on rank tier.</p>
+        </div>
+        <button class="secondary" onclick="loadLeaderboard()">Refresh</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Player</th><th>Rank Points (RP)</th><th>Chips</th></tr>
+        </thead>
+        <tbody id="leaderboardBody">
+          <tr><td colspan="4" class="subtitle">Loading rankings...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="notice">
+    Prototype rules: Chips are fictional and have no cash value. Global 1 of 1 claims and Season Leaderboard are synced live via Supabase.
+  </div>
+</div>
+
+<div class="modal-backdrop" id="packModal">
+  <div class="modal">
+    <div class="badge" id="modalPackTitle">Opening pack…</div>
+    <h2 id="modalCardName" style="margin:14px 0;">♠ Hitman's Hand</h2>
+Use code with caution.
+The dealer is getting the cards ready.
+
+Reveal card
+Close
+
+
+const SUPABASE_URL = "supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_4FFfg0j2JWbvgDufC_5_cQ_-OH4GEfR";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const RARITIES = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Exotic", "1of1"];
+const CARD_POOL = [
+{ id: "c1", name: "Street Velvet", rarity: "Common", value: 25 },
+{ id: "c2", name: "Midnight Felt", rarity: "Common", value: 25 },
+{ id: "c3", name: "Brass Knuckle", rarity: "Uncommon", value: 60 },
+{ id: "c4", name: "Neon Alley", rarity: "Uncommon", value: 60 },
+{ id: "c5", name: "Crimson Suit", rarity: "Rare", value: 150 },
+{ id: "c6", name: "Silencer Gold", rarity: "Epic", value: 400 },
+{ id: "c7", name: "Syndicate Crown", rarity: "Legendary", value: 1200 },
+{ id: "c8", name: "Halo Seraph", rarity: "Mythic", value: 10000 },
+{ id: "c9", name: "Season Eclipse", rarity: "Exotic", value: 2500 },
+{ id: "c10", name: "The First Ace (1/1)", rarity: "1of1", value: 50000 }
+];
+const PACKS = [
+{ name: "Street Pack", cost: 100, desc: "Classic table styles & high Common/Rare odds.", halo: false },
+{ name: "High Roller Pack", cost: 500, desc: "Boosted Epic, Legendary, and 1 of 1 odds.", halo: false },
+{ name: "Halo Pack", cost: 1000, desc: "Contains the 1-in-137,000 Mythic Halo Seraph.", halo: true }
+];
+function getEasternDateParts() {
+const now = new Date();
+const estString = now.toLocaleString("en-US", { timeZone: "America/New_York" });
+const est = new Date(estString);
+return {
+dayKey: ${est.getFullYear()}-${est.getMonth() + 1}-${est.getDate()},
+seasonKey: ${est.getFullYear()}-${String(est.getMonth() + 1).padStart(2, "0")}
+};
+}
+const { dayKey, seasonKey } = getEasternDateParts();
+let state = JSON.parse(localStorage.getItem("hh_online_save") || "null") || {
+playerId: "p_" + Math.random().toString(36).slice(2, 10),
+playerName: "",
+chips: 1000,
+rp: 1000,
+season: seasonKey,
+lastDaily: "",
+packsOpened: 0,
+owned: {},
+claimed1of1: {}
+};
+if (state.season !== seasonKey) {
+state.season = seasonKey;
+state.rp = 1000;
+}
+if (state.playerName) {
+document.getElementById("playerNameInput").value = state.playerName;
+}
+async function saveState() {
+localStorage.setItem("hh_online_save", JSON.stringify(state));
+renderStats();
+const displayName = document.getElementById("playerNameInput").value.trim() || state.playerName || Agent-${state.playerId.slice(2, 6)};
+state.playerName = displayName;
+await supabaseClient.from("leaderboard").upsert({
+player_id: state.playerId,
+player_name: displayName,
+rp: state.rp,
+chips: state.chips,
+season: state.season,
+updated_at: new Date().toISOString()
+});
+}
+async function syncGlobalClaims() {
+const { data } = await supabaseClient.from("claims").select("*");
+if (data) {
+data.forEach(row => {
+state.claimed1of1[row.card_id] = row.owner_name;
+});
+localStorage.setItem("hh_online_save", JSON.stringify(state));
+renderGlobalClaimsBanner();
+}
+}
+function renderGlobalClaimsBanner() {
+const owner = state.claimed1of1["c10"];
+document.getElementById("globalClaimsBanner").innerHTML = owner
+? <strong>👑 Global 1 of 1 Status:</strong> <em>The First Ace (1/1)</em> has been permanently claimed by <strong>${owner}</strong>!
+: <strong>✨ Global 1 of 1 Status:</strong> <em>The First Ace (1/1)</em> is still UNCLAIMED! Pull it first to lock it to your name.;
+}
+async function loadLeaderboard() {
+document.getElementById("lbSeasonLabel").textContent = state.season;
+const { data, error } = await supabaseClient
+.from("leaderboard")
+.select("*")
+.eq("season", state.season)
+.order("rp", { ascending: false })
+.limit(25);
+const tbody = document.getElementById("leaderboardBody");
+if (error || !data || !data.length) {
+tbody.innerHTML = <tr><td colspan="4" class="subtitle">No players on the board yet this season.</td></tr>;
+return;
+}
+tbody.innerHTML = data.map((row, idx) => `
+#${idx + 1}
+\(row.player_{n}ame\){row.player_id === state.playerId ? "(You)" : ""}${row.rp.toLocaleString()} RP${row.chips.toLocaleString()}`).join("");
+}
+function claimDaily() {
+if (state.lastDaily === dayKey) {
+alert("You already claimed today's +1,000 chips! Come back after midnight Eastern.");
+return;
+}
+state.chips += 1000;
+state.lastDaily = dayKey;
+saveState();
+}
+let roomChannel = null;
+let currentRoom = "";
+let isHost = false;
+let myName = "Player";
+let roomPlayers = {};
+let myHand = [];
+function generateRoomCode() {
+const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+let code = "";
+for (let i = 0; i < 4; i++) code += letters[Math.floor(Math.random() * letters.length)];
+return code;
+}
+function createRoom() {
+connectToRoom(generateRoomCode(), true);
+}
+function joinRoom() {
+const code = document.getElementById("roomCodeInput").value.trim().toUpperCase();
+if (code.length !== 4) return alert("Enter a 4-letter room code.");
+connectToRoom(code, false);
+}
+function connectToRoom(code, hostFlag) {
+myName = document.getElementById("playerNameInput").value.trim() || Agent-${state.playerId.slice(2, 6)};
+state.playerName = myName;
+saveState();
+currentRoom = code;
+isHost = hostFlag;
+document.getElementById("lobbyControls").style.display = "none";
+document.getElementById("activeRoomPanel").style.display = "block";
+document.getElementById("displayRoomCode").textContent = code;
+document.getElementById("dealBtn").style.display = isHost ? "inline-block" : "none";
+roomChannel = supabaseClient.channel(room-${code}, {
+config: { presence: { key: state.playerId } }
+});
+roomChannel
+.on("presence", { event: "sync" }, () => {
+const presenceState = roomChannel.presenceState();
+roomPlayers = {};
+Object.keys(presenceState).forEach(k => {
+roomPlayers[k] = presenceState[k][0];
+});
+renderPlayers();
+})
+.on("broadcast", { event: "chat" }, ({ payload }) => {
+appendLog(${payload.sender}: ${payload.text});
+})
+.on("broadcast", { event: "deal" }, ({ payload }) => {
+if (payload.hands[state.playerId]) {
+myHand = payload.hands[state.playerId];
+renderHand();
+appendLog("Dealer dealt a new hand!");
+}
+})
+.on("broadcast", { event: "play_card" }, ({ payload }) => {
+appendLog(🃏 ${payload.sender} played [${payload.card.name}] (${payload.card.rarity}));
+})
+.on("broadcast", { event: "stop_hand" }, ({ payload }) => {
+appendLog(🛑 ${payload.sender} called STOP HAND!);
+})
+.on("broadcast", { event: "claim_1of1" }, ({ payload }) => {
+state.claimed1of1[payload.cardId] = payload.owner;
+renderGlobalClaimsBanner();
+appendLog(👑 GLOBAL 1 OF 1 CLAIMED: ${payload.owner} now owns ${payload.cardName}!);
+})
+.subscribe(async (status) => {
+if (status === "SUBSCRIBED") {
+await roomChannel.track({ id: state.playerId, name: myName, rp: state.rp, isHost });
+appendLog(Joined room ${code} as ${myName}${isHost ? " (Dealer)" : ""}.);
+}
+});
+}
+function leaveRoom() {
+if (roomChannel) supabaseClient.removeChannel(roomChannel);
+roomChannel = null;
+document.getElementById("lobbyControls").style.display = "block";
+document.getElementById("activeRoomPanel").style.display = "none";
+document.getElementById("chatBox").innerHTML = "";
+}
+function dealerStartRound() {
+if (!isHost || !roomChannel) return;
+const hands = {};
+Object.keys(roomPlayers).forEach(pid => {
+hands[pid] = Array.from({ length: 5 }, () => CARD_POOL[Math.floor(Math.random() * 6)]);
+});
+roomChannel.send({ type: "broadcast", event: "deal", payload: { hands } });
+myHand = hands[state.playerId] || [];
+renderHand();
+appendLog("You dealt 5 cards to everyone at the table.");
+}
+function playCardFromHand(index) {
+const card = myHand.splice(index, 1)[0];
+renderHand();
+appendLog(You played [${card.name}]);
+if (roomChannel) {
+roomChannel.send({ type: "broadcast", event: "play_card", payload: { sender: myName, card } });
+}
+}
+function triggerStopHand() {
+appendLog("🛑 You called STOP HAND!");
+if (roomChannel) {
+roomChannel.send({ type: "broadcast", event: "stop_hand", payload: { sender: myName } });
+}
+}
+function sendChat() {
+const input = document.getElementById("chatInput");
+const text = input.value.trim();
+if (!text) return;
+input.value = "";
+appendLog(${myName}: ${text});
+if (roomChannel) {
+roomChannel.send({ type: "broadcast", event: "chat", payload: { sender: myName, text } });
+}
+}
+function appendLog(msg) {
+const box = document.getElementById("chatBox");
+const line = document.createElement("div");
+line.textContent = msg;
+box.appendChild(line);
+box.scrollTop = box.scrollHeight;
+}
+function renderPlayers() {
+const el = document.getElementById("playerList");
+el.innerHTML = Object.values(roomPlayers)
+.map(p => <span class="pill">${p.name} (${p.rp} RP)${p.isHost ? " ★" : ""}</span>)
+.join("");
+}
+function renderHand() {
+const el = document.getElementById("handArea");
+el.innerHTML = myHand.map((c, idx) => <div class="card-box rarity-${c.rarity}" onclick="playCardFromHand(${idx})" style="cursor:pointer;"> <span class="badge">${c.rarity}</span> <strong>${c.name}</strong> <span class="subtitle">Click to play</span> </div>).join("");
+}
+let pendingPull = null;
+async function openPack(packIndex) {
+const pack = PACKS[packIndex];
+if (state.chips < pack.cost) return alert("Not enough chips!");
+state.chips -= pack.cost;
+state.packsOpened += 1;
+await syncGlobalClaims();
+const roll = Math.random();
+let pulled;
+if (pack.halo && roll < (1 / 137000)) {
+pulled = CARD_POOL.find(c => c.rarity === "Mythic");
+} else if (roll < 0.005 && !state.claimed1of1["c10"]) {
+pulled = CARD_POOL.find(c => c.rarity === "1of1");
+} else if (roll < 0.04) {
+pulled = CARD_POOL.find(c => c.rarity === "Legendary");
+} else if (roll < 0.14) {
+pulled = CARD_POOL.find(c => c.rarity === "Epic");
+} else if (roll < 0.35) {
+pulled = CARD_POOL.find(c => c.rarity === "Rare");
+} else if (roll < 0.65) {
+pulled = CARD_POOL.find(c => c.rarity === "Uncommon");
+} else {
+pulled = CARD_POOL[Math.floor(Math.random() * 2)];
+}
+pendingPull = pulled;
+document.getElementById("modalPackTitle").textContent = Opening ${pack.name}…;
+document.getElementById("modalCardName").textContent = "♠ Hitman's Hand";
+document.getElementById("modalCardRarity").textContent = "The dealer is getting the cards ready.";
+document.getElementById("revealBtn").style.display = "inline-block";
+document.getElementById("packModal").classList.add("open");
+saveState();
+}
+async function revealPulledCard() {
+if (!pendingPull) return;
+const card = pendingPull;
+pendingPull = null;
+document.getElementById("revealBtn").style.display = "none";
+document.getElementById("modalCardName").textContent = card.name;
+const claimerName = document.getElementById("playerNameInput").value.trim() || state.playerName || Agent-${state.playerId.slice(2, 6)};
+if (card.rarity === "1of1") {
+const { error } = await supabaseClient.from("claims").insert({
+card_id: card.id,
+owner_name: claimerName
+});
+if (!error) {
+state.claimed1of1[card.id] = claimerName;
+state.owned[card.id] = 1;
+document.getElementById("modalCardRarity").textContent = 1 OF 1 — Permanently locked to ${claimerName} globally!;
+if (roomChannel) {
+roomChannel.send({ type: "broadcast", event: "claim_1of1", payload: { cardId: card.id, cardName: card.name, owner: claimerName } });
+}
+} else {
+await syncGlobalClaims();
+state.chips += 5000;
+document.getElementById("modalCardRarity").textContent = Someone just claimed the 1 of 1 seconds ago! Converted to +5,000 chips.;
+}
+} else if (state.owned[card.id]) {
+const refund = Math.floor(card.value * 0.5);
+state.chips += refund;
+document.getElementById("modalCardRarity").textContent = ${card.rarity} — Duplicate! Converted to +${refund} chips.;
+} else {
+state.owned[card.id] = 1;
+document.getElementById("modalCardRarity").textContent = ${card.rarity} — Added to your collection!;
+}
+saveState();
+renderCollection("All");
+renderGlobalClaimsBanner();
+}
+function closeModal() {
+document.getElementById("packModal").classList.remove("open");
+}
+function renderShop() {
+let hash = 0;
+for (let i = 0; i < dayKey.length; i++) hash = (hash * 31 + dayKey.charCodeAt(i)) >>> 0;
+const picks = [CARD_POOL[hash % 5], CARD_POOL[(hash + 2) % 7], CARD_POOL[(hash + 4) % 9]];
+document.getElementById("shopGrid").innerHTML = picks.map(c => <div class="card-box rarity-${c.rarity}"> <span class="badge">${c.rarity}</span> <strong>${c.name}</strong> <button onclick="buyShopCard('${c.id}', ${c.value * 2})">Buy (${c.value * 2} chips)</button> </div>).join("");
+}
+function buyShopCard(id, cost) {
+if (state.chips < cost) return alert("Not enough chips!");
+state.chips -= cost;
+state.owned[id] = (state.owned[id] || 0) + 1;
+saveState();
+renderCollection("All");
+alert("Card purchased!");
+}
+function renderCollection(filter) {
+const ownedIds = Object.keys(state.owned);
+const list = CARD_POOL.filter(c => ownedIds.includes(c.id) && (filter === "All" || c.rarity === filter));
+document.getElementById("collectionGrid").innerHTML = list.length
+? list.map(c => <div class="card-box rarity-${c.rarity}"> <span class="badge">${c.rarity}</span> <strong>${c.name}</strong> <span class="subtitle">${c.rarity === "1of1" ?Claimed by: ${state.claimed1of1[c.id] || "You"}: "Owned"}</span> </div>).join("")
+: <p class="subtitle">No cards in this category yet. Open some packs!</p>;
+}
+function renderStats() {
+document.getElementById("chipsDisplay").textContent = ${state.chips.toLocaleString()} CHIPS;
+document.getElementById("seasonLabel").textContent = state.season;
+document.getElementById("statPacks").textContent = state.packsOpened;
+const uniqueCount = Object.keys(state.owned).length;
+document.getElementById("statOwned").textContent = uniqueCount;
+document.getElementById("statUnique").textContent = uniqueCount;
+const ownedCards = CARD_POOL.filter(c => state.owned[c.id]);
+document.getElementById("statTop").textContent = ownedCards.length ? ownedCards[ownedCards.length - 1].name : "None yet";
+}
+function switchTab(name, btn) {
+document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+document.querySelectorAll(".tabs .tab").forEach(b => b.classList.remove("active"));
+document.getElementById(tab-${name}).classList.add("active");
+btn.classList.add("active");
+}
+document.getElementById("packGrid").innerHTML = PACKS.map((p, i) => <div class="card-box"> <strong>${p.name}</strong> <p class="subtitle">${p.desc}</p> <button onclick="openPack(${i})">Open (${p.cost} chips)</button> </div>).join("");
+document.getElementById("filterBar").innerHTML = ["All", ...RARITIES].map(r =>
+<button class="tab secondary" onclick="renderCollection('${r}')">${r}</button>
+).join("");
+renderStats();
+renderShop();
+renderCollection("All");
+syncGlobalClaims();
+
+
 
